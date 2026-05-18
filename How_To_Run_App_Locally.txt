@@ -1,0 +1,2 @@
+1. Go to Command Prompt 
+2. streamlit run src/demo/app.py

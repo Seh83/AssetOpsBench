@@ -69,7 +69,8 @@ class Executor:
                         f"{p['name']}: {p['type']}{'?' if not p['required'] else ''}"
                         for p in t.get("parameters", [])
                     )
-                    lines.append(f"  - {t['name']}({params}): {t['description']}")
+                    lines.append(
+                        f"  - {t['name']}({params}): {t['description']}")
                 descriptions[name] = "\n".join(lines)
             except Exception as exc:  # noqa: BLE001
                 descriptions[name] = f"  (unavailable: {exc})"
@@ -83,7 +84,8 @@ class Executor:
         # Pre-fetch tool schemas for all servers referenced in the plan so that
         # _resolve_args_with_llm can include exact parameter names in its prompt.
         server_names = {step.server for step in ordered}
-        tool_schemas: dict[str, dict[str, str]] = {}  # server -> {tool_name -> sig}
+        # server -> {tool_name -> sig}
+        tool_schemas: dict[str, dict[str, str]] = {}
         for name in server_names:
             path = self._server_paths.get(name)
             if path is None:
@@ -117,7 +119,8 @@ class Executor:
             if result.success:
                 _log.info("Step %d OK.", step.step_number)
             else:
-                _log.warning("Step %d FAILED: %s", step.step_number, result.error)
+                _log.warning("Step %d FAILED: %s",
+                             step.step_number, result.error)
             context[step.step_number] = result
             results.append(result)
         return results
@@ -160,7 +163,8 @@ class Executor:
             )
 
         try:
-            _log.info("Step %d: calling LLM to resolve args.", step.step_number)
+            _log.info("Step %d: calling LLM to resolve args.",
+                      step.step_number)
             resolved_args = await _resolve_args_with_llm(
                 question, step.task, step.tool, tool_schema, context, self._llm
             )
@@ -226,17 +230,19 @@ def _parse_json(raw: str) -> dict | None:
     Returns the parsed dict, or None if no JSON object could be extracted.
     An empty dict ``{}`` is a valid successful parse (e.g. for no-arg tools).
     """
-    text = raw.strip()
-    if text.startswith("```"):
-        lines = text.splitlines()
-        inner = lines[1:-1] if lines[-1].strip() == "```" else lines[1:]
-        text = "\n".join(inner).lstrip("json").strip()
+    # Step 1: Try to extract content inside triple backticks
+    match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
+    text = match.group(1) if match else raw.strip()
+
     try:
         result = json.loads(text)
         if isinstance(result, dict):
             return result
     except json.JSONDecodeError:
         pass
+
+    # Step 2: Fallback to finding the first and last braces
+    # (Useful if the model added text before or after the JSON)
     start, end = text.find("{"), text.rfind("}") + 1
     if start != -1 and end > start:
         try:
@@ -245,7 +251,8 @@ def _parse_json(raw: str) -> dict | None:
                 return result
         except json.JSONDecodeError:
             pass
-    _log.debug("_parse_json: could not extract a JSON object from: %r…", raw[:120])
+    _log.debug(
+        "_parse_json: could not extract a JSON object from: %r…", raw[:120])
     return None
 
 
