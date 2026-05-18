@@ -26,6 +26,7 @@ import dataclasses
 import json
 import logging
 import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -79,11 +80,16 @@ def persist_trajectory(
     }
 
     try:
-        out_path.write_text(
-            json.dumps(record, indent=2, default=str), encoding="utf-8"
-        )
-    except OSError:
-        _log.exception("persist_trajectory: write failed at %s", out_path)
+        # Atomic write: write to temp file then rename
+        with tempfile.NamedTemporaryFile('w', dir=out_dir, delete=False, encoding='utf-8') as tf:
+            json.dump(record, tf, indent=2, default=str)
+            temp_name = tf.name
+        Path(temp_name).replace(out_path)
+    except (OSError, json.JSONDecodeError):
+        _log.exception(
+            "persist_trajectory: atomic write failed at %s", out_path)
+        if 'temp_name' in locals() and Path(temp_name).exists():
+            Path(temp_name).unlink()
         return None
     return out_path
 
@@ -100,7 +106,8 @@ def _serialize_trajectory(trajectory: Any) -> Any:
         return dataclasses.asdict(trajectory)
     if isinstance(trajectory, list):
         return [
-            dataclasses.asdict(item) if dataclasses.is_dataclass(item) else item
+            dataclasses.asdict(
+                item) if dataclasses.is_dataclass(item) else item
             for item in trajectory
         ]
     return trajectory
