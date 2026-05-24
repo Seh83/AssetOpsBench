@@ -43,9 +43,14 @@ def init_state(df: pd.DataFrame) -> None:
         st.session_state.sim_speed        = list(SPEED_OPTIONS.keys())[1]  # 5x default
         st.session_state.sim_playing      = False
         st.session_state.sim_event_log    = []
-        st.session_state.sim_active_alert = None
-        st.session_state.sim_alert_tick   = 0
-        st.session_state.sim_max_row      = len(df) - 1
+        st.session_state.sim_active_alert   = None
+        st.session_state.sim_alert_tick    = 0
+        st.session_state.sim_max_row       = len(df) - 1
+        # Agent pipeline state
+        st.session_state.sim_agent_status   = "idle"   # idle|pending|agent1_done|agent2_done|done
+        st.session_state.sim_agent_results  = {}
+        st.session_state.sim_agent_alert_id = None
+        st.session_state.sim_agents_visible = True
 
 
 def tick(df: pd.DataFrame) -> None:
@@ -98,5 +103,8 @@ def reset(scenario: str | None = None) -> None:
     st.session_state.sim_row          = SCENARIOS[st.session_state.sim_scenario]
     st.session_state.sim_playing      = False
     st.session_state.sim_event_log    = []
-    st.session_state.sim_active_alert = None
-    st.session_state.sim_alert_tick   = 0
+    st.session_state.sim_active_alert   = None
+    st.session_state.sim_alert_tick    = 0
+    st.session_state.sim_agent_status  = "idle"
+    st.session_state.sim_agent_results = {}
+    st.session_state.sim_agent_alert_id = None

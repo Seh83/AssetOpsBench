@@ -25,7 +25,6 @@ _BASE_LAYOUT = dict(
     paper_bgcolor=BG_PAPER,
     plot_bgcolor=BG_PLOT,
     font=dict(color=TEXT_COLOR, size=11),
-    margin=dict(l=10, r=10, t=30, b=10),
     hovermode="x unified",
 )
 
@@ -67,7 +66,6 @@ def gauge_chart(
                 range=[min_val, max_val],
                 tickcolor=TEXT_COLOR,
                 tickfont=dict(size=10),
-                gridcolor=GRID_COLOR,
             ),
             bar=dict(color=bar_color, thickness=0.25),
             bgcolor=BG_PLOT,
@@ -87,12 +85,12 @@ def gauge_chart(
     )
 
     fig = go.Figure(indicator)
-    fig.update_layout(
+    fig.update_layout(**{
         **_BASE_LAYOUT,
-        height=height,
-        margin=dict(l=20, r=20, t=40, b=10),
-        paper_bgcolor=BG_PAPER,
-    )
+        "height": height,
+        "margin": dict(l=20, r=20, t=40, b=10),
+        "paper_bgcolor": BG_PAPER,
+    })
     return fig
 
 
@@ -316,3 +314,330 @@ def humidity_co2_panel(window_df: pd.DataFrame, height: int = 200) -> go.Figure:
                      gridcolor=GRID_COLOR, secondary_y=False)
     fig.update_yaxes(title_text="CO2 (ppm)", showgrid=False, secondary_y=True)
     return fig
+
+
+# ── 7. Agent pipeline flow diagram ───────────────────────────────────────────
+
+def agent_flow_html(agent_status: str, agent_results: dict) -> str:
+    """
+    Returns a self-contained HTML string rendering the n8n-style agent
+    pipeline flow diagram. Node colours and badges update based on agent_status.
+    """
+    # Map each pipeline stage to a visual state
+    def _state(stages_done: list[str]) -> str:
+        if agent_status == "idle":
+            return "idle"
+        if agent_status == "pending" and "sensor" in stages_done:
+            return "running"
+        if agent_status == "agent1_done" and "diagnosis" in stages_done:
+            return "running"
+        if agent_status == "agent2_done" and "action" in stages_done:
+            return "running"
+        completed_map = {
+            "sensor":    ["agent1_done", "agent2_done", "done"],
+            "diagnosis": ["agent2_done", "done"],
+            "action":    ["done"],
+            "output":    ["done"],
+        }
+        for stage in stages_done:
+            if agent_status in completed_map.get(stage, []):
+                return "done"
+        return "idle"
+
+    trigger_state  = "done" if agent_status != "idle" else "idle"
+    sensor_state   = _state(["sensor"])
+    if agent_status == "pending":
+        sensor_state = "running"
+    diagnosis_state = _state(["diagnosis"])
+    if agent_status == "agent1_done":
+        diagnosis_state = "running"
+    action_state   = _state(["action"])
+    if agent_status == "agent2_done":
+        action_state = "running"
+    output_state   = "done" if agent_status == "done" else "idle"
+
+    wo = agent_results.get("work_order", {})
+    wo_num = wo.get("wo_number", "—")
+
+    # Colour scheme per state
+    COLORS = {
+        "idle":    {"border": "#1A3A6B", "bg": "#0D1F3C", "label": "#8BA3C7", "icon_bg": "#0A1628"},
+        "running": {"border": "#00C2FF", "bg": "#0A2540", "label": "#FFFFFF", "icon_bg": "#0D2A4A"},
+        "done":    {"border": "#00C851", "bg": "#0A2015", "label": "#FFFFFF", "icon_bg": "#0D2A1A"},
+    }
+
+    def _node(icon: str, title: str, subtitle: str, state: str,
+              tools: list[str] | None = None, node_id: str = "") -> str:
+        c = COLORS[state]
+        pulse_anim = "animation: pulse-border 1.4s ease-in-out infinite;" if state == "running" else ""
+        badge = ""
+        if state == "running":
+            badge = '<div class="spinner"></div>'
+        elif state == "done":
+            badge = '<span style="color:#00C851;font-size:13px;font-weight:900;">&#10003;</span>'
+
+        tool_chips = ""
+        if tools:
+            chips_html = "".join(
+                f'<div class="tool-chip" style="border-color:{c["border"]};color:{c["label"]};">'
+                f'<span style="color:#00C2FF;margin-right:4px;">&#9670;</span>{t}</div>'
+                for t in tools
+            )
+            tool_chips = f'<div class="tool-group">{chips_html}</div>'
+
+        return f"""
+        <div class="node-wrap" id="{node_id}">
+          <div class="node" style="border-color:{c['border']};background:{c['bg']};{pulse_anim}">
+            <div class="node-badge">{badge}</div>
+            <div class="node-icon" style="background:{c['icon_bg']};">{icon}</div>
+            <div class="node-title" style="color:{c['label']};">{title}</div>
+            <div class="node-sub">{subtitle}</div>
+          </div>
+          {tool_chips}
+        </div>"""
+
+    def _arrow(state: str) -> str:
+        color = "#00C2FF" if state in ("running", "done") else "#1A3A6B"
+        animated = "animation: flow-arrow 1s linear infinite;" if state == "running" else ""
+        return f"""
+        <div class="arrow-wrap">
+          <div class="arrow-line" style="background:{color};{animated}"></div>
+          <div class="arrow-head" style="border-left-color:{color};"></div>
+        </div>"""
+
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{
+    background: #0A1628;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    padding: 24px 16px;
+    min-height: 520px;
+  }}
+
+  /* ── Header ── */
+  .flow-header {{
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 28px;
+  }}
+  .flow-title {{
+    font-size: 13px; font-weight: 700; color: #8BA3C7;
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }}
+  .status-pill {{
+    font-size: 11px; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px;
+    background: #0D2348; border: 1px solid #1A3A6B; color: #8BA3C7;
+  }}
+  .status-pill.running {{ background:#0A2540; border-color:#00C2FF; color:#00C2FF; }}
+  .status-pill.done    {{ background:#0A2015; border-color:#00C851; color:#00C851; }}
+
+  /* ── Pipeline row ── */
+  .pipeline {{
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 12px;
+  }}
+
+  /* ── Nodes ── */
+  .node-wrap {{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 140px;
+  }}
+  .node {{
+    position: relative;
+    border: 2px solid #1A3A6B;
+    border-radius: 12px;
+    padding: 14px 12px 10px;
+    width: 130px;
+    text-align: center;
+    cursor: default;
+    transition: border-color 0.3s, background 0.3s;
+  }}
+  .node-badge {{
+    position: absolute; top: 7px; right: 9px;
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+  }}
+  .node-icon {{
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin: 0 auto 8px;
+    background: #0A1628;
+  }}
+  .node-title {{
+    font-size: 11px; font-weight: 700;
+    color: #8BA3C7; letter-spacing: 0.4px;
+    margin-bottom: 3px;
+  }}
+  .node-sub {{
+    font-size: 9px; color: #4A6A9B;
+    letter-spacing: 0.3px;
+  }}
+
+  /* ── Tool chips (below node) ── */
+  .tool-group {{
+    display: flex; flex-direction: column;
+    align-items: center; gap: 4px;
+    margin-top: 10px; width: 100%;
+  }}
+  .tool-chip {{
+    font-size: 9px; font-weight: 600;
+    padding: 3px 8px; border-radius: 5px;
+    border: 1px solid #1A3A6B;
+    color: #8BA3C7; background: #0D1F3C;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    transition: border-color 0.3s, color 0.3s;
+  }}
+
+  /* ── Arrows ── */
+  .arrow-wrap {{
+    display: flex; align-items: center;
+    margin-top: 30px; flex-shrink: 0;
+  }}
+  .arrow-line {{
+    width: 36px; height: 2px;
+    background: #1A3A6B;
+    transition: background 0.3s;
+  }}
+  .arrow-head {{
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid #1A3A6B;
+    transition: border-left-color 0.3s;
+  }}
+
+  /* ── Work order badge ── */
+  .wo-badge {{
+    margin-top: 14px;
+    background: #0A2015;
+    border: 1px solid #00C851;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 10px; color: #00C851;
+    text-align: center; width: 130px;
+    font-weight: 600;
+  }}
+  .wo-num {{ font-size: 11px; font-weight: 800; color: #00C2FF; }}
+
+  /* ── Animations ── */
+  @keyframes pulse-border {{
+    0%,100% {{ box-shadow: 0 0 0 0 rgba(0,194,255,0); border-color: #00C2FF; }}
+    50%      {{ box-shadow: 0 0 12px 4px rgba(0,194,255,0.25); border-color: #66DFFF; }}
+  }}
+  @keyframes spin {{
+    to {{ transform: rotate(360deg); }}
+  }}
+  .spinner {{
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,194,255,0.3);
+    border-top-color: #00C2FF;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }}
+  @keyframes flow-arrow {{
+    0%   {{ opacity: 0.4; }} 50% {{ opacity: 1; }} 100% {{ opacity: 0.4; }}
+  }}
+
+  /* ── Legend ── */
+  .legend {{
+    display: flex; gap: 20px; margin-top: 28px;
+    padding-top: 16px; border-top: 1px solid #1A3A6B;
+  }}
+  .legend-item {{
+    display: flex; align-items: center; gap: 6px;
+    font-size: 10px; color: #4A6A9B;
+  }}
+  .legend-dot {{
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid;
+  }}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="flow-header">
+  <div class="flow-title">Agent Pipeline — Live Status</div>
+  {"<div class='status-pill running'>&#9654; RUNNING</div>" if agent_status in ("pending","agent1_done","agent2_done") else
+   "<div class='status-pill done'>&#10003; COMPLETE</div>" if agent_status == "done" else
+   "<div class='status-pill'>STANDBY</div>"}
+</div>
+
+<!-- Pipeline -->
+<div class="pipeline">
+
+  {_node("⚡", "ANOMALY TRIGGER", "z-score threshold breach",
+         trigger_state, node_id="n-trigger")}
+
+  {_arrow(sensor_state)}
+
+  {_node("🔍", "SENSOR INTEL", "Agent 1",
+         sensor_state,
+         tools=["get_sensor_snapshot", "get_anomaly_context", "get_asset_profile"],
+         node_id="n-sensor")}
+
+  {_arrow(diagnosis_state)}
+
+  {_node("🔬", "DIAGNOSIS", "Agent 2",
+         diagnosis_state,
+         tools=["get_fault_library", "get_system_health_metrics"],
+         node_id="n-diag")}
+
+  {_arrow(action_state)}
+
+  {_node("📋", "ACTION", "Agent 3",
+         action_state,
+         tools=["get_maintenance_history", "create_work_order"],
+         node_id="n-action")}
+
+  {_arrow(output_state)}
+
+  <!-- Output node -->
+  <div class="node-wrap">
+    <div class="node" style="border-color:{'#00C851' if output_state=='done' else '#1A3A6B'};
+                              background:{'#0A2015' if output_state=='done' else '#0D1F3C'};">
+      <div class="node-icon" style="background:{'#0D2A1A' if output_state=='done' else '#0A1628'};">
+        {'📄' if output_state!='done' else '✅'}
+      </div>
+      <div class="node-title" style="color:{'#FFFFFF' if output_state=='done' else '#8BA3C7'};">
+        WORK ORDER
+      </div>
+      <div class="node-sub">{'CMMS / ERP' if output_state!='done' else 'Pending Approval'}</div>
+    </div>
+    {"<div class='wo-badge'><div class='wo-num'>" + wo_num + "</div><div>Pending Approval</div></div>"
+     if output_state == "done" else ""}
+  </div>
+
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-dot" style="border-color:#1A3A6B;background:#0D1F3C;"></div>Standby
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="border-color:#00C2FF;background:#0A2540;"></div>Running
+  </div>
+  <div class="legend-item">
+    <div class="legend-dot" style="border-color:#00C851;background:#0A2015;"></div>Complete
+  </div>
+  <div class="legend-item" style="margin-left:auto;color:#4A6A9B;">
+    &#9670; = tool call &nbsp;|&nbsp; &#8594; = data flow
+  </div>
+</div>
+
+</body>
+</html>
+"""
+    return html
