@@ -28,6 +28,7 @@ This generates `src/demo/results/anomalies.csv` and `src/demo/results/forecast.j
 ### 4. Launch the demo
 ```bash
 streamlit run src/demo/app.py
+streamlit run src/demo/app_v2.py
 ```
 Opens at http://localhost:8501
 
