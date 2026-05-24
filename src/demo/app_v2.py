@@ -34,93 +34,343 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Styles ────────────────────────────────────────────────────────────────────
+# ── Production Design System ──────────────────────────────────────────────────
 st.markdown("""
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
 <style>
-  html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+/* ── Design Tokens ── */
+:root {
+  --bg-base:      #070F1D;
+  --bg-card:      #0D1F3C;
+  --bg-card-2:    #091627;
+  --bg-card-3:    #0A1628;
+  --border:       #112240;
+  --border-2:     #1A3A6B;
+  --text-primary: #FFFFFF;
+  --text-sec:     #C8D8F0;
+  --text-muted:   #8BA3C7;
+  --text-dim:     #4A6A9B;
+  --accent-blue:  #00C2FF;
+  --accent-green: #00C851;
+  --accent-orange:#FF8C00;
+  --accent-red:   #FF4444;
+  --accent-yellow:#FFD700;
+  --accent-purple:#9B59B6;
+  --radius-sm:    6px;
+  --radius-md:    10px;
+  --radius-lg:    14px;
+  --shadow-card:  0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
+  --font-main:    'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+}
 
-  .syncai-header {
-    background: linear-gradient(90deg, #0A1628 0%, #0D2348 100%);
-    padding: 14px 24px; border-radius: 10px; margin-bottom: 16px;
-    border-left: 4px solid #00C2FF;
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .syncai-logo { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
-  .syncai-logo span { color: #00C2FF; }
-  .syncai-tag  { font-size: 12px; color: #8BA3C7; margin-top: 2px; }
-  .sim-ticker  { text-align: right; font-size: 12px; color: #8BA3C7; font-family: monospace; }
-  .sim-ticker b { color: #00C2FF; font-size: 14px; }
+/* ── Base reset ── */
+html, body, [class*="css"], .stApp, [data-testid="stAppViewContainer"] {
+  font-family: var(--font-main) !important;
+  background-color: var(--bg-base) !important;
+}
 
-  .alert-critical {
-    background: linear-gradient(90deg,#3D0A0A,#2A0A0A);
-    border: 1px solid #FF4444; border-left: 5px solid #FF4444;
-    border-radius: 8px; padding: 14px 20px; margin-bottom: 16px;
-    animation: pulse-red 1.5s infinite;
-  }
-  .alert-warning {
-    background: linear-gradient(90deg,#2A1500,#1A0E00);
-    border: 1px solid #FF8C00; border-left: 5px solid #FF8C00;
-    border-radius: 8px; padding: 14px 20px; margin-bottom: 16px;
-  }
-  .alert-watch {
-    background: linear-gradient(90deg,#1A1600,#111000);
-    border: 1px solid #FFD700; border-left: 5px solid #FFD700;
-    border-radius: 8px; padding: 14px 20px; margin-bottom: 16px;
-  }
-  @keyframes pulse-red {
-    0%,100% { border-color:#FF4444; box-shadow:0 0 0 0 rgba(255,68,68,0); }
-    50%      { border-color:#FF8888; box-shadow:0 0 8px 4px rgba(255,68,68,0.3); }
-  }
-  .alert-title  { font-size:15px; font-weight:700; color:#fff; }
-  .alert-detail { font-size:12px; color:#8BA3C7; margin-top:4px; }
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
 
-  .section-label {
-    font-size:11px; font-weight:600; color:#8BA3C7;
-    text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;
-  }
+/* ── Streamlit overrides ── */
+[data-testid="stSidebar"] {
+  background: var(--bg-card-3) !important;
+  border-right: 1px solid var(--border) !important;
+}
+[data-testid="stMetricValue"] {
+  font-family: var(--font-main) !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+}
+[data-testid="stMetricLabel"] {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--text-muted) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+[data-testid="stMetricDelta"] > div {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+[data-testid="metric-container"] {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 14px 16px 12px !important;
+  box-shadow: var(--shadow-card) !important;
+  transition: border-color 0.2s;
+}
+[data-testid="metric-container"]:hover {
+  border-color: var(--border-2) !important;
+}
 
-  .ev-badge {
-    background:#0D2348; border:1px solid #1A3A6B; border-radius:6px;
-    padding:6px 10px; margin-bottom:6px; font-size:11px; color:#8BA3C7;
-  }
-  .ev-badge .ev-sensor { color:#fff; font-weight:600; }
-  .ev-badge .ev-crit   { color:#FF4444; }
-  .ev-badge .ev-warn   { color:#FF8C00; }
-  .ev-badge .ev-watch  { color:#FFD700; }
+/* ── Tabs ── */
+[data-testid="stTabs"] [role="tablist"] {
+  background: var(--bg-card-3);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-bottom: 1px solid var(--border);
+  gap: 2px; padding: 4px 6px 0;
+}
+[data-testid="stTabs"] [role="tab"] {
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0 !important;
+  padding: 8px 18px !important;
+  border-bottom: 2px solid transparent !important;
+  transition: color 0.2s, border-color 0.2s !important;
+}
+[data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+  color: var(--accent-blue) !important;
+  border-bottom-color: var(--accent-blue) !important;
+  background: rgba(0,194,255,0.06) !important;
+}
+[data-testid="stTabs"] [role="tab"]:hover:not([aria-selected="true"]) {
+  color: var(--text-sec) !important;
+  background: rgba(255,255,255,0.03) !important;
+}
 
-  .agent-mini {
-    background:#0D2348; border:1px solid #1A3A6B; border-radius:8px;
-    padding:10px 12px; margin-bottom:8px; font-size:11px;
-  }
-  .agent-mini .am-title { color:#00C2FF; font-weight:700; margin-bottom:4px; }
-  .agent-mini .am-body  { color:#8BA3C7; line-height:1.4; }
-  .agent-mini .am-run   { color:#FFD700; font-style:italic; }
+/* ── Buttons ── */
+.stButton > button {
+  font-family: var(--font-main) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.3px !important;
+  border-radius: var(--radius-sm) !important;
+  transition: all 0.2s !important;
+}
+.stButton > button[kind="primary"] {
+  background: linear-gradient(135deg, #00A8E0, #0070A8) !important;
+  border: 1px solid rgba(0,194,255,0.4) !important;
+  box-shadow: 0 0 12px rgba(0,194,255,0.2) !important;
+}
+.stButton > button[kind="primary"]:hover {
+  box-shadow: 0 0 20px rgba(0,194,255,0.4) !important;
+  transform: translateY(-1px) !important;
+}
 
-  .agent-card {
-    background:#0D2348; border:1px solid #1A3A6B;
-    border-left:4px solid #00C2FF;
-    border-radius:8px; padding:18px 20px; margin-bottom:18px;
-  }
-  .agent-card.diagnosis { border-left-color:#FF8C00; }
-  .agent-card.action    { border-left-color:#00C851; }
-  .ac-title { font-size:13px; font-weight:700; color:#fff;
-              text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
-  .ac-body  { font-size:13px; color:#C8D8F0; line-height:1.7; white-space:pre-wrap; }
+/* ── Dataframe ── */
+[data-testid="stDataFrame"] {
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  overflow: hidden;
+}
 
-  .wo-card {
-    background:linear-gradient(135deg,#0D2A1A,#0A1F14);
-    border:1px solid #00C851; border-radius:10px; padding:20px; margin-bottom:16px;
-  }
-  .wo-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
-  .wo-num    { font-size:20px; font-weight:800; color:#00C2FF; }
-  .wo-badge  { font-size:11px; font-weight:700; padding:4px 10px; border-radius:6px; }
-  .wo-badge.High      { background:#2A1500; color:#FF8C00; border:1px solid #FF8C00; }
-  .wo-badge.Emergency { background:#3D0A0A; color:#FF4444; border:1px solid #FF4444; }
-  .wo-badge.Medium    { background:#1A1600; color:#FFD700; border:1px solid #FFD700; }
-  .wo-title  { font-size:15px; font-weight:700; color:#fff; margin-bottom:4px; }
-  .wo-meta   { font-size:11px; color:#8BA3C7; }
+/* ── Divider ── */
+hr { border-color: var(--border) !important; }
 
-  .stButton > button { border-radius:6px; font-weight:600; font-size:13px; }
+/* ── ════════════════════════════════════════ ──
+   Custom components
+── ════════════════════════════════════════ ── */
+
+/* HEADER */
+.syncai-header {
+  background: linear-gradient(90deg, #091627 0%, #0A1E3A 60%, #071628 100%);
+  padding: 16px 24px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-blue);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 20px rgba(0,194,255,0.08);
+}
+.syncai-logo {
+  font-size: 26px; font-weight: 800; color: #fff;
+  letter-spacing: -0.8px; line-height: 1;
+}
+.syncai-logo span { color: var(--accent-blue); }
+.syncai-tag {
+  font-size: 11px; color: var(--text-muted);
+  margin-top: 4px; font-weight: 500; letter-spacing: 0.3px;
+}
+.sim-ticker {
+  text-align: right; font-size: 11px; color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+.sim-ticker .ticker-time {
+  font-size: 15px; font-weight: 600;
+  color: var(--accent-blue); letter-spacing: 0.5px;
+}
+.sim-status-dot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; margin-right: 5px;
+  animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,100% { opacity:1; } 50% { opacity:0.35; }
+}
+
+/* ALERT BANNERS */
+.alert-banner {
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.alert-banner .alert-icon {
+  font-size: 20px; flex-shrink: 0; margin-top: 1px;
+}
+.alert-critical {
+  background: linear-gradient(135deg, #1A0505, #0F0303);
+  border: 1px solid rgba(255,68,68,0.6);
+  border-left: 4px solid var(--accent-red);
+  box-shadow: 0 0 20px rgba(255,68,68,0.12);
+  animation: pulse-red 1.8s ease-in-out infinite;
+}
+.alert-warning {
+  background: linear-gradient(135deg, #1A0A00, #100600);
+  border: 1px solid rgba(255,140,0,0.5);
+  border-left: 4px solid var(--accent-orange);
+  box-shadow: 0 0 16px rgba(255,140,0,0.10);
+}
+.alert-watch {
+  background: linear-gradient(135deg, #14110000, #0A0900);
+  border: 1px solid rgba(255,215,0,0.4);
+  border-left: 4px solid var(--accent-yellow);
+}
+@keyframes pulse-red {
+  0%,100% { box-shadow: 0 0 16px rgba(255,68,68,0.12); }
+  50%      { box-shadow: 0 0 28px rgba(255,68,68,0.30); }
+}
+.alert-title {
+  font-size: 14px; font-weight: 700; color: #fff;
+  letter-spacing: 0.2px; line-height: 1.3;
+}
+.alert-detail {
+  font-size: 12px; color: var(--text-muted);
+  margin-top: 5px; line-height: 1.5;
+}
+.alert-pill {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px;
+  vertical-align: middle; margin-left: 6px;
+}
+.pill-crit   { background:rgba(255,68,68,0.2);  color:var(--accent-red);    border:1px solid rgba(255,68,68,0.4); }
+.pill-warn   { background:rgba(255,140,0,0.2);  color:var(--accent-orange); border:1px solid rgba(255,140,0,0.4); }
+.pill-watch  { background:rgba(255,215,0,0.15); color:var(--accent-yellow); border:1px solid rgba(255,215,0,0.3); }
+
+/* SECTION LABELS */
+.section-label {
+  font-size: 10px; font-weight: 700; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 1.2px;
+  margin: 18px 0 10px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* EVENT BADGES (sidebar) */
+.ev-badge {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px; margin-bottom: 6px;
+  font-size: 11px; color: var(--text-muted);
+  transition: border-color 0.2s;
+}
+.ev-badge:hover { border-color: var(--border-2); }
+.ev-sensor { color: var(--text-primary); font-weight: 600; }
+.ev-crit   { color: var(--accent-red);    font-weight: 700; }
+.ev-warn   { color: var(--accent-orange); font-weight: 700; }
+.ev-watch  { color: var(--accent-yellow); font-weight: 700; }
+
+/* AGENT MINI CARDS (sidebar) */
+.agent-mini {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px; margin-bottom: 7px;
+  font-size: 11px;
+}
+.am-title { color: var(--accent-blue); font-weight: 700; margin-bottom: 4px; font-size: 11px; }
+.am-body  { color: var(--text-muted); line-height: 1.45; }
+.am-run   { color: var(--accent-yellow); font-style: italic; }
+
+/* AGENT CARDS (main) */
+.agent-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-blue);
+  border-radius: var(--radius-md);
+  padding: 20px 22px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-card);
+}
+.agent-card.diagnosis { border-left-color: var(--accent-orange); }
+.agent-card.action    { border-left-color: var(--accent-green); }
+.ac-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.ac-icon { font-size: 18px; }
+.ac-title {
+  font-size: 11px; font-weight: 700; color: var(--text-primary);
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.ac-status {
+  margin-left: auto; font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: 20px;
+  background: rgba(0,200,81,0.15); color: var(--accent-green);
+  border: 1px solid rgba(0,200,81,0.3);
+}
+.ac-body {
+  font-size: 13px; color: var(--text-sec);
+  line-height: 1.75; white-space: pre-wrap;
+  font-family: var(--font-main);
+}
+
+/* WORK ORDER CARD */
+.wo-card {
+  background: linear-gradient(135deg, #071D14, #050F0A);
+  border: 1px solid rgba(0,200,81,0.4);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  margin-bottom: 18px;
+  box-shadow: 0 0 24px rgba(0,200,81,0.08);
+}
+.wo-header {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 14px;
+  padding-bottom: 14px; border-bottom: 1px solid rgba(0,200,81,0.15);
+}
+.wo-num {
+  font-size: 22px; font-weight: 800;
+  color: var(--accent-blue); font-family: var(--font-mono);
+  letter-spacing: 0.5px;
+}
+.wo-title { font-size: 15px; font-weight: 700; color: #fff; margin: 4px 0; }
+.wo-meta  { font-size: 11px; color: var(--text-muted); line-height: 1.6; }
+.wo-badge {
+  font-size: 10px; font-weight: 700;
+  padding: 4px 12px; border-radius: 20px; white-space: nowrap;
+}
+.wo-badge.High      { background:rgba(255,140,0,0.15); color:var(--accent-orange); border:1px solid rgba(255,140,0,0.4); }
+.wo-badge.Emergency { background:rgba(255,68,68,0.15);  color:var(--accent-red);    border:1px solid rgba(255,68,68,0.5); }
+.wo-badge.Medium    { background:rgba(255,215,0,0.12);  color:var(--accent-yellow); border:1px solid rgba(255,215,0,0.35); }
+.wo-badge.Low       { background:rgba(0,194,255,0.12);  color:var(--accent-blue);   border:1px solid rgba(0,194,255,0.3); }
+
+/* KPI grid row */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 6px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -313,34 +563,52 @@ st.markdown(f"""
 <div class="syncai-header">
   <div>
     <div class="syncai-logo">Sync<span>.ai</span></div>
-    <div class="syncai-tag">Industrial AI Asset Intelligence &nbsp;|&nbsp;
-      <span style="color:{status_color};">{status_str}</span>
+    <div class="syncai-tag">
+      Industrial AI Asset Intelligence
+      &nbsp;&nbsp;&#9679;&nbsp;&nbsp;
+      <span class="sim-status-dot" style="background:{status_color};"></span>
+      <span style="color:{status_color};font-weight:600;">{status_str}</span>
+      &nbsp;&nbsp;&#9679;&nbsp;&nbsp;
+      Chiller Unit A1 &mdash; Site MAIN
     </div>
   </div>
   <div class="sim-ticker">
-    <span style="color:{play_color};font-weight:700;">{play_icon}</span><br>
-    SIM TIME<br><b>{sim_time_str}</b>
+    <div style="color:{play_color};font-weight:700;font-size:10px;letter-spacing:1px;margin-bottom:3px;">
+      {'&#9654; STREAMING' if st.session_state.sim_playing else '&#9646;&#9646; PAUSED'}
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);letter-spacing:0.5px;">SIM TIME</div>
+    <div class="ticker-time">{sim_time_str}</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ── Alert banner ──────────────────────────────────────────────────────────────
 if active_alert:
-    sev  = active_alert["severity"]
-    cls  = {"Critical": "alert-critical", "Warning": "alert-warning"}.get(sev, "alert-watch")
-    icon = {"Critical": "CRITICAL ANOMALY", "Warning": "WARNING", "Watch": "WATCH"}.get(sev, "ALERT")
-    agents_note = (' &nbsp;|&nbsp; <b style="color:#FFD700;">&#9889; Agents activated</b>'
-                   if st.session_state.sim_agent_status != "idle" else "")
+    sev        = active_alert["severity"]
+    cls        = {"Critical": "alert-critical", "Warning": "alert-warning"}.get(sev, "alert-watch")
+    icon_emoji = {"Critical": "🔴", "Warning": "🟠", "Watch": "🟡"}.get(sev, "⚡")
+    pill_cls   = {"Critical": "pill-crit",   "Warning": "pill-warn"}.get(sev, "pill-watch")
+    sev_label  = sev.upper()
+    agents_note = (
+        ' &nbsp;<span style="color:#FFD700;font-weight:700;">&#9889; Agents activated</span>'
+        if st.session_state.sim_agent_status != "idle" else ""
+    )
     st.markdown(f"""
-    <div class="{cls}">
-      <div class="alert-title">
-        {icon} &nbsp;|&nbsp; {active_alert['sensor'].replace('_',' ').upper()}
-        &nbsp;|&nbsp; z = {active_alert['z_score']} sigma
-        &nbsp;|&nbsp; {active_alert['value']} W
-      </div>
-      <div class="alert-detail">
-        {active_alert['failure_mode']} &mdash; {active_alert['action']}
-        &nbsp;|&nbsp; Fault Code: {active_alert['fault_code']}{agents_note}
+    <div class="alert-banner {cls}">
+      <div class="alert-icon">{icon_emoji}</div>
+      <div>
+        <div class="alert-title">
+          <span class="alert-pill {pill_cls}">{sev_label}</span>
+          &nbsp;{active_alert['sensor'].replace('_',' ').upper()}
+          &nbsp;&mdash;&nbsp;z&thinsp;=&thinsp;<strong>{active_alert['z_score']}&thinsp;&sigma;</strong>
+          &nbsp;|&nbsp; <span style="font-family:var(--font-mono);">{active_alert['value']} W</span>
+        </div>
+        <div class="alert-detail">
+          {active_alert['failure_mode']} &mdash; {active_alert['action']}
+          &nbsp;&nbsp;&#9679;&nbsp;&nbsp;
+          Fault Code: <strong>{active_alert['fault_code']}</strong>
+          {agents_note}
+        </div>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -399,7 +667,10 @@ with tab_live:
 
     st.markdown('<div class="section-label">Live Sensor Stream — 12hr Rolling Window</div>',
                 unsafe_allow_html=True)
-    st.plotly_chart(scrolling_chart(window, active_alert), use_container_width=True)
+    st.plotly_chart(
+        scrolling_chart(window, active_alert, event_log=log if log else None),
+        use_container_width=True,
+    )
 
     st.markdown('<div class="section-label">Sensor Panels</div>', unsafe_allow_html=True)
     p1, p2, p3, p4 = st.columns(4)
@@ -442,26 +713,41 @@ with tab_ai:
         st.info("No active incident. Press PLAY and wait for the anomaly — agents will activate automatically.")
 
     if "sensor_text" in a_results:
-        st.markdown('<div class="agent-card">'
-                    '<div class="ac-title">🔍 Agent 1 — Sensor Intelligence</div>'
-                    f'<div class="ac-body">{a_results["sensor_text"]}</div>'
-                    '</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="agent-card">'
+            '<div class="ac-header">'
+            '<span class="ac-icon">🔍</span>'
+            '<div class="ac-title">Agent 1 — Sensor Intelligence</div>'
+            '<span class="ac-status">&#10003;&nbsp;Complete</span>'
+            '</div>'
+            f'<div class="ac-body">{a_results["sensor_text"]}</div>'
+            '</div>', unsafe_allow_html=True)
     elif a_status == "pending":
-        st.info("Agent 1 — Sensor Intelligence: analyzing sensors...")
+        st.info("🔍 Agent 1 — Sensor Intelligence: analyzing sensor cross-correlations...")
 
     if "diagnosis_text" in a_results:
-        st.markdown('<div class="agent-card diagnosis">'
-                    '<div class="ac-title">🔬 Agent 2 — Diagnosis</div>'
-                    f'<div class="ac-body">{a_results["diagnosis_text"]}</div>'
-                    '</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="agent-card diagnosis">'
+            '<div class="ac-header">'
+            '<span class="ac-icon">🔬</span>'
+            '<div class="ac-title">Agent 2 — Diagnosis</div>'
+            '<span class="ac-status">&#10003;&nbsp;Complete</span>'
+            '</div>'
+            f'<div class="ac-body">{a_results["diagnosis_text"]}</div>'
+            '</div>', unsafe_allow_html=True)
     elif a_status == "agent1_done":
-        st.info("Agent 2 — Diagnosis: ranking root causes...")
+        st.info("🔬 Agent 2 — Diagnosis: ranking root causes with confidence scores...")
 
     if "action_text" in a_results:
-        st.markdown('<div class="agent-card action">'
-                    '<div class="ac-title">📋 Agent 3 — Action</div>'
-                    f'<div class="ac-body">{a_results["action_text"]}</div>'
-                    '</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="agent-card action">'
+            '<div class="ac-header">'
+            '<span class="ac-icon">📋</span>'
+            '<div class="ac-title">Agent 3 — Action &amp; Work Order</div>'
+            '<span class="ac-status">&#10003;&nbsp;Complete</span>'
+            '</div>'
+            f'<div class="ac-body">{a_results["action_text"]}</div>'
+            '</div>', unsafe_allow_html=True)
 
         wo = a_results.get("work_order", {})
         if wo:
